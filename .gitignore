@@ -1,0 +1,5 @@
+# Meta folder (commit plans, ephemeral)
+meta/
+
+# OS files
+.DS_Store
