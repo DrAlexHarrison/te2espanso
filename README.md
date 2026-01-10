@@ -15,7 +15,7 @@ Convert TextExpander exports to Espanso YAML format.
 
 ```bash
 # Clone the repo
-git clone https://github.com/dralexharrison/te2espanso.git
+git clone https://github.com/DrAlexHarrison/te2espanso.git
 cd te2espanso
 
 # Make executable (optional)
