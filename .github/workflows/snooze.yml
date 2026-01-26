@@ -1,0 +1,17 @@
+name: Issue Snooze
+on:
+  issues:
+    types: [opened, edited, unlabeled, closed]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  snooze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: DrAlexHarrison/gh-snooze@v1
+        with:
+          timezone: America/Phoenix
