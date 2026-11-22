@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>groupInfo</key>
+	<dict>
+		<key>groupName</key>
+		<string>Work Basics</string>
+	</dict>
+	<key>snippetsTE3</key>
+	<array>
+		<dict>
+			<key>abbreviation</key>
+			<string>sig</string>
+			<key>plainText</key>
+			<string>Best regards,
+Alex</string>
+		</dict>
+		<dict>
+			<key>abbreviation</key>
+			<string>trail2</string>
+			<key>plainText</key>
+			<string>First line
+Second line
+
+</string>
+		</dict>
+		<dict>
+			<key>abbreviation</key>
+			<string>docs</string>
+			<key>extraInfo</key>
+			<dict>
+				<key>jsonStr</key>
+				<string>{"nodes": [{"e": "p", "nodes": [{"e": "tx", "tx": "See the "}, {"e": "link", "url": "https://example.com/docs", "nodes": [{"e": "tx", "tx": "docs"}]}, {"e": "tx", "tx": " first."}]}]}</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>abbreviation</key>
+			<string>steps</string>
+			<key>extraInfo</key>
+			<dict>
+				<key>jsonStr</key>
+				<string>{"nodes": [{"e": "p", "nodes": [{"e": "tx", "tx": "Steps:"}]}, {"e": "numbered-list", "list-items": [{"nodes": [{"e": "tx", "tx": "Open the app"}]}, {"nodes": [{"e": "tx", "tx": "Click Save"}]}]}]}</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>abbreviation</key>
+			<string>groceries</string>
+			<key>extraInfo</key>
+			<dict>
+				<key>jsonStr</key>
+				<string>{"nodes": [{"e": "bulleted-list", "list-items": [{"nodes": [{"e": "tx", "tx": "Milk"}]}, {"nodes": [{"e": "tx", "tx": "Eggs"}]}]}]}</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>abbreviation</key>
+			<string>wrapup</string>
+			<key>extraInfo</key>
+			<dict>
+				<key>jsonStr</key>
+				<string>{"nodes": [{"e": "bulleted-list", "list-items": [{"nodes": [{"e": "tx", "tx": "Only item"}]}]}, {"e": "p", "nodes": [{"e": "tx", "tx": "Done."}]}]}</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>abbreviation</key>
+			<string>blanky</string>
+			<key>plainText</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>plainText</key>
+			<string>No abbreviation, must be skipped</string>
+		</dict>
+		<dict>
+			<key>abbreviation</key>
+			<string>uni</string>
+			<key>plainText</key>
+			<string>Café ☕ — naïve résumé 🎉</string>
+		</dict>
+	</array>
+</dict>
+</plist>

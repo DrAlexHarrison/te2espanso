@@ -45,7 +45,19 @@ csv.field_size_limit(sys.maxsize)
 def needs_quoting(s: str) -> bool:
     """Check if a string needs quoting in YAML."""
     if not s:
-        return False
+        return True
+
+    # Tabs, carriage returns, and control characters cannot appear
+    # literally in YAML plain scalars. NEL and Unicode line/paragraph
+    # separators count as line breaks in YAML.
+    for ch in s:
+        o = ord(ch)
+        if o < 0x20 or o == 0x7F or ch in '\x85\u2028\u2029':
+            return True
+
+    # ' #' starts a YAML comment when unquoted.
+    if ' #' in s:
+        return True
 
     problematic_patterns = [
         r': ',           # colon-space
@@ -53,8 +65,19 @@ def needs_quoting(s: str) -> bool:
         r':$',           # trailing colon
         r'^\s',          # leading whitespace
         r'\s$',          # trailing whitespace
-        r'^[\[\]{}&*!|>\'"%@`#,?-]',  # leading special chars
-        r'^(true|false|yes|no|on|off|null|~)$',  # YAML keywords
+        r'^[\[\]{}&*!|>\'"%@`#,?:-]',  # leading special chars
+        r'^(true|false|yes|no|on|off|null|~|y|n)$',  # YAML keywords
+        r'^[-+]?(\d[\d_]*)$',                        # plain integer
+        r'^[-+]?(\d[\d_]*)?\.[\d_]+([eE][-+]?\d+)?$',  # float, dot lead
+        r'^[-+]?\d[\d_]*\.([eE][-+]?\d+)?$',         # float, dot trail
+        r'^[-+]?\d[\d_]*[eE][-+]?\d+$',              # exponent, no dot
+        r'^0[xX][0-9a-fA-F_]+$',                     # hex integer
+        r'^0[oO]?[0-7_]+$',                          # octal-looking
+        r'^[-+]?\d+(:\d{1,2})+(\.\d*)?$',            # sexagesimal (12:30)
+        r'^[-+]?\.(inf|Inf|INF)$',                   # infinity
+        r'^\.(nan|NaN|NAN)$',                        # not-a-number
+        r'^\d{4}-\d{2}-\d{2}([Tt ].*)?$',            # timestamp/date
+        r'^(\.\.\.|---)(\s|$)',                      # document markers
     ]
 
     for pattern in problematic_patterns:
@@ -69,11 +92,53 @@ def needs_quoting(s: str) -> bool:
 
 def escape_yaml_string(s: str) -> str:
     """Escape a string for YAML double-quoted output."""
-    s = s.replace('\\', '\\\\')
-    s = s.replace('"', '\\"')
-    s = s.replace('\n', '\\n')
-    s = s.replace('\t', '\\t')
-    return s
+    out = []
+    for ch in s:
+        if ch == '\\':
+            out.append('\\\\')
+        elif ch == '"':
+            out.append('\\"')
+        elif ch == '\n':
+            out.append('\\n')
+        elif ch == '\r':
+            out.append('\\r')
+        elif ch == '\t':
+            out.append('\\t')
+        elif ch == '\x85':
+            out.append('\\N')
+        elif ch == '\u2028':
+            out.append('\\L')
+        elif ch == '\u2029':
+            out.append('\\P')
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            out.append(f'\\x{ord(ch):02X}')
+        else:
+            out.append(ch)
+    return ''.join(out)
+
+
+def _block_scalar_safe(content: str) -> bool:
+    """True when a literal block scalar can reproduce content exactly."""
+    # Block scalars normalize CR and Unicode line breaks, and cannot
+    # hold control characters or leading tabs on a line.
+    for ch in content:
+        o = ord(ch)
+        if (o < 0x20 and ch not in '\n\t') or o == 0x7F \
+                or ch in '\r\x85\u2028\u2029':
+            return False
+    lines = content.split('\n')
+    if any(line.startswith('\t') for line in lines):
+        return False
+    # Needs at least one line with text, or the block has no detectable
+    # indentation and loads back empty.
+    if not any(line.strip() for line in lines):
+        return False
+    # Indentation is auto-detected from the first non-empty line, so a
+    # leading space there would swallow the following lines' indent.
+    for line in lines:
+        if line:
+            return not line.startswith(' ')
+    return False
 
 
 def format_yaml_value(content: str) -> tuple[str, bool]:
@@ -81,7 +146,7 @@ def format_yaml_value(content: str) -> tuple[str, bool]:
     if not content:
         return '""', False
 
-    if '\n' in content:
+    if '\n' in content and _block_scalar_safe(content):
         if content.endswith('\n\n'):
             indicator = '|+'
         elif content.endswith('\n'):
@@ -106,44 +171,73 @@ def parse_textexpander_json(json_str: str) -> str:
 
 
 def parse_te_nodes(nodes: list) -> str:
-    """Recursively parse TextExpander JSON nodes to plain text."""
-    result = []
+    """Recursively parse TextExpander JSON nodes to plain text.
+
+    Inline nodes (tx, link) concatenate. Block nodes (p, lists, ln
+    lines) and br breaks end the current segment. Segments join with
+    a single newline, so a paragraph or list never gains a leading
+    or trailing newline and text after a list stays on its own line.
+    """
+    segments = []
+    current = None  # None: no line started. "": line started by a break.
+
+    def inline(text):
+        nonlocal current
+        current = (current or '') + text
+
+    def block(text):
+        nonlocal current
+        if current:
+            segments.append(current)
+        current = None
+        segments.append(text)
+
+    def line_break():
+        nonlocal current
+        segments.append(current or '')
+        current = ''
 
     for node in nodes:
         node_type = node.get('e', '')
 
         if node_type == 'tx':
-            result.append(node.get('tx', ''))
-        elif node_type == 'ln':
-            result.append('\n')
+            inline(node.get('tx', ''))
         elif node_type == 'link':
             url = node.get('url', '')
             text = parse_te_nodes(node.get('nodes', []))
             if text and url:
-                result.append(f'[{text}]({url})')
+                inline(f'[{text}]({url})')
             elif url:
-                result.append(url)
+                inline(url)
             else:
-                result.append(text)
+                inline(text)
         elif node_type in ('numbered-list', 'bulleted-list'):
             items = node.get('list-items', [])
+            rendered = []
             for i, item in enumerate(items):
                 item_text = parse_te_nodes(item.get('nodes', []))
                 if node_type == 'numbered-list':
-                    result.append(f'\n{i+1}. {item_text}')
+                    rendered.append(f'{i+1}. {item_text}')
                 else:
-                    result.append(f'\n• {item_text}')
+                    rendered.append(f'• {item_text}')
+            block('\n'.join(rendered))
         elif node_type == 'list-item':
-            result.append(parse_te_nodes(node.get('nodes', [])))
+            inline(parse_te_nodes(node.get('nodes', [])))
         elif node_type == 'p':
-            result.append(parse_te_nodes(node.get('nodes', [])))
-            result.append('\n')
+            block(parse_te_nodes(node.get('nodes', [])))
+        elif node_type == 'ln':
+            if 'nodes' in node:
+                block(parse_te_nodes(node['nodes']))
+            else:
+                line_break()
         elif node_type == 'br':
-            result.append('\n')
+            line_break()
         elif 'nodes' in node:
-            result.append(parse_te_nodes(node['nodes']))
+            inline(parse_te_nodes(node['nodes']))
 
-    return ''.join(result)
+    if current is not None:
+        segments.append(current)
+    return '\n'.join(segments)
 
 
 def parse_csv(csv_path: str) -> list:
@@ -155,7 +249,9 @@ def parse_csv(csv_path: str) -> list:
         for row in reader:
             if len(row) < 2:
                 continue
-            trigger = row[0].strip().strip('"').strip("'")
+            # csv.reader already removed CSV quoting. Stripping quote
+            # characters here mangled real triggers like 'tis or "x".
+            trigger = row[0].strip()
             content = row[1]
             if trigger:
                 matches.append((trigger, content))
@@ -192,8 +288,9 @@ def parse_textexpander_file(te_path: str) -> tuple[list, str]:
         if json_str and not content:
             content = parse_textexpander_json(json_str)
 
-        if trigger and content:
-            matches.append((trigger, content))
+        # Keep empty replacements, matching the CSV path, instead of
+        # silently dropping the snippet.
+        matches.append((trigger, content))
 
     # TE2 format fallback
     if not matches:
@@ -201,7 +298,7 @@ def parse_textexpander_file(te_path: str) -> tuple[list, str]:
         for snippet in snippets:
             trigger = snippet.get('abbreviation', '').strip()
             content = snippet.get('plainText', '')
-            if trigger and content:
+            if trigger:
                 matches.append((trigger, content))
 
     return matches, group_name
@@ -225,7 +322,8 @@ def write_espanso_yaml(matches: list, yml_path: str, prefix: str = "",
 
     with open(yml_path, 'w', encoding='utf-8') as f:
         if group_name:
-            f.write(f"# Source: {group_name}\n")
+            safe_name = group_name.replace('\r', ' ').replace('\n', ' ')
+            f.write(f"# Source: {safe_name}\n")
         if prefix:
             f.write(f"# Prefix '{prefix}' applied to all triggers\n")
         f.write("\nmatches:\n")
@@ -244,7 +342,13 @@ def write_espanso_yaml(matches: list, yml_path: str, prefix: str = "",
 
             if is_multiline:
                 f.write(f"    replace: {formatted}\n")
-                for line in content.split('\n'):
+                lines = content.split('\n')
+                if content.endswith('\n'):
+                    # The final '' from split() is the line terminator,
+                    # not an extra blank line. Writing it added a
+                    # spurious newline under the '|+' (keep) indicator.
+                    lines.pop()
+                for line in lines:
                     if line:
                         f.write(f"      {line}\n")
                     else:
