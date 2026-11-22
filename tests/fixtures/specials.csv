@@ -1,0 +1,19 @@
+sp-dash,- leading dash
+sp-colon,": leading colon"
+sp-colon-nospace,:nospace
+sp-question,? question
+sp-hash,# heading
+sp-amp,&anchor text
+sp-star,*alias text
+sp-bang,!bang
+sp-pipe,| pipe
+sp-gt,> quoted
+sp-squote,'single quoted'
+sp-dquote,"""double quoted"""
+sp-percent,%percent
+sp-at,@mention
+sp-backtick,`backtick code`
+`sig,backtick trigger here
+;date,semicolon trigger
+..shrug,dotdot trigger
+'tis,leading apostrophe trigger

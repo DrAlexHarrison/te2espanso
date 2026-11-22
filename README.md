@@ -2,7 +2,7 @@
 
 Convert TextExpander exports to Espanso YAML format.
 
-> **Warning:** This tool is minimally tested. Use at your own risk! Always back up your snippets before converting.
+> **Note:** Covered by an automated test suite (see [Tests](#tests)). Back up your snippets before converting anyway.
 
 ## Features
 
@@ -68,6 +68,18 @@ Example: If prefix is `rp` and trigger is `fyi`, the Espanso trigger becomes `rp
 
 - **Ready snippets:** `~/.config/espanso/match/te-imports/`
 - **Staging (skipped):** `~/.config/espanso/te-imports-staging/`
+
+## Tests
+
+The pytest suite in `tests/` converts synthetic CSV and `.textexpander` fixtures covering plain text, multiline text, links, lists, quotes, colons, leading YAML-special characters, tabs, unicode, empty fields, duplicate abbreviations, TE2 and TE3 groups, prefixes, and the saved prefix config. Every generated YAML file is loaded back with a YAML parser, and each trigger and replacement must match the source exactly.
+
+Run it with:
+
+```bash
+uv run --with pytest --with pyyaml python -m pytest -q
+```
+
+The tests need only pytest and PyYAML. `te2espanso.py` itself has no runtime dependencies.
 
 ## Support
 

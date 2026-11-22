@@ -1,0 +1,20 @@
+sig,"Best regards, Alex"
+addr,"Line one
+Line two
+Line three"
+addr-trail,"First
+Second
+"
+addr-trail2,"First
+Second
+
+"
+site,https://example.com/docs?a=1&b=2
+quote,"She said ""hello"" loudly"
+apos,don't panic
+colon,Note: check this
+empty,
+dup,first value
+dup,second value
+emoji,Ship it 🚀 — café ☕ ñandú
+tabbed,"col1	col2"

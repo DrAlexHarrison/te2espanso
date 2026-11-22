@@ -1,0 +1,15 @@
+lk-int,12345
+lk-float,3.14
+lk-time,12:30
+lk-date,2024-01-15
+lk-yes,yes
+lk-no,No
+lk-y,y
+lk-null,~
+lk-hex,0x1A
+lk-comment,meet at 3 # sharp
+lk-dots,...
+lk-bool,true
+lk-url,http://example.com:8080/path
+lk-backslash,C:\path\to\file
+lk-only-spaces,"   "
